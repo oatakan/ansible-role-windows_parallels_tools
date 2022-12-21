@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: Orcun Atakan
+  description: Ansible galaxy role for installing Parallels tools on Windows images.
+  role_name: windows_parallels_tools
+  company: Red Hat
+
+  license: MIT
+
+  min_ansible_version: 2.5
+
+  platforms:
+    - name: Windows
+      versions:
+        - all
+
+  cloud_platforms: []
+
+  galaxy_tags:
+    - windows
+    - parallels
+    - guest
+    - cloud
+    - multicloud
+
+dependencies: []

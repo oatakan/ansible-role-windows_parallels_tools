@@ -1,0 +1,76 @@
+---
+
+- name: check if .prlctl_version is created
+  win_stat:
+    path: '{{ ansible_user_dir | default("") }}\.prlctl_version'
+  register: check_prlctl_version_file
+  ignore_errors: true
+
+- block:
+    - name: get Parallels version.
+      slurp:
+        src: '{{ ansible_user_dir }}\.prlctl_version'
+      register: get_parallels_version
+
+    - name: set Parallels version.
+      set_fact:
+        parallels_version: "{{ get_parallels_version['content'] | b64decode }}"
+  when: check_prlctl_version_file.stat.exists
+
+- name: check for mounted iso location
+  win_stat:
+    path: '{{ parallels_mounted_iso_drive }}:\PTAgent.exe'
+    get_checksum: no
+  register: check_mounted_iso_location
+
+- block:
+    - name: check for iso file
+      win_stat:
+        path: '{{ parallels_iso_file }}'
+        get_checksum: no
+      register: check_parallels_iso_file
+
+    - name: download iso file if needed
+      win_get_url:
+        url: '{{ parallels_tools_download_url }}'
+        dest: '{{ parallels_iso_file }}'
+      when: not check_parallels_iso_file.stat.exists
+
+    - name: mount iso
+      win_disk_image:
+        image_path: '{{ parallels_iso_file }}'
+        state: present
+      register: disk_image_out
+
+    - name: ensure parallels tools installed
+      win_package:
+        path: '{{ disk_image_out.mount_paths[0] }}PTAgent.exe'
+        creates_path: 'C:\Program Files\Parallels\Parallels Tools\PTAgent.exe'
+        arguments:
+          - /install_silent
+      register: parallels_tools_install_from_iso
+
+  always:
+    - name: unmount iso
+      win_disk_image:
+        image_path: '{{ parallels_iso_file }}'
+        state: absent
+
+    - name: remove iso file
+      win_file:
+        path: '{{ parallels_iso_file }}'
+        state: absent
+  when: not check_mounted_iso_location.stat.exists
+
+- name: ensure parallels tools installed
+  win_package:
+    path: '{{ parallels_mounted_iso_drive }}:\PTAgent.exe'
+    creates_path: 'C:\Program Files\Parallels\Parallels Tools\PTAgent.exe'
+    arguments:
+      - /install_silent
+  register: parallels_tools_install_mounted
+  when: check_mounted_iso_location.stat.exists
+
+- name: reboot after installation
+  win_reboot:
+  when: parallels_tools_install_from_iso.reboot_required | default(false) or parallels_tools_install_mounted.reboot_required | default(true)
