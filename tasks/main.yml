@@ -42,13 +42,9 @@
         state: present
       register: disk_image_out
 
-    - name: ensure parallels tools installed
-      win_package:
-        path: '{{ disk_image_out.mount_paths[0] }}PTAgent.exe'
-        creates_path: 'C:\Program Files\Parallels\Parallels Tools\PTAgent.exe'
-        arguments:
-          - /install_silent
-      register: parallels_tools_install_from_iso
+    - include_tasks: install.yml
+      vars:
+        _mounted_drive: "{{ disk_image_out.mount_paths[0] }}"
 
   always:
     - name: unmount iso
@@ -60,17 +56,11 @@
       win_file:
         path: '{{ parallels_iso_file }}'
         state: absent
-  when: not check_mounted_iso_location.stat.exists
+  when:
+    - not check_mounted_iso_location.stat.exists
+    - parallels_tools_download_url | length
 
-- name: ensure parallels tools installed
-  win_package:
-    path: '{{ parallels_mounted_iso_drive }}:\PTAgent.exe'
-    creates_path: 'C:\Program Files\Parallels\Parallels Tools\PTAgent.exe'
-    arguments:
-      - /install_silent
-  register: parallels_tools_install_mounted
+- include_tasks: install.yml
   when: check_mounted_iso_location.stat.exists
-
-- name: reboot after installation
-  win_reboot:
-  when: parallels_tools_install_from_iso.reboot_required | default(false) or parallels_tools_install_mounted.reboot_required | default(true)
+  vars:
+    _mounted_drive: "{{ parallels_mounted_iso_drive }}"

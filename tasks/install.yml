@@ -1,0 +1,36 @@
+---
+
+- name: check for existing installation
+  win_stat:
+    path: C:\Program Files\Parallels\Parallels Tools\PTIAgent.exe
+  register: check_existing_parallels_tools
+
+- block:
+    - name: ensure parallels tools installed
+      win_package:
+        path: '{{ _mounted_drive }}:\PTAgent.exe'
+        creates_path: 'C:\Program Files\Parallels\Parallels Tools\PTIAgent.exe'
+        arguments:
+          - /install_silent
+      register: parallels_tools_install_mounted
+      async: 7200
+      poll: 0
+
+    - name: wait for 60 seconds
+      pause:
+        seconds: 60
+
+    - name: wait for connection
+      wait_for_connection:
+
+    - name: wait for installation to finish
+      community.windows.win_wait_for_process:
+        process_name_exact:
+          - PTAgent
+        state: absent
+        timeout: 500
+        post_wait_delay: 5
+
+    - name: reboot after installation
+      win_reboot:
+  when: not check_existing_parallels_tools.stat.exists
