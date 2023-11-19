@@ -1,13 +1,14 @@
 ---
 
 - name: check for existing installation
-  win_stat:
+  ansible.windows.win_stat:
     path: C:\Program Files\Parallels\Parallels Tools\PTIAgent.exe
   register: check_existing_parallels_tools
 
-- block:
+- name: parallels tools install
+  block:
     - name: ensure parallels tools installed
-      win_package:
+      ansible.windows.win_package:
         path: '{{ _mounted_drive }}:\PTAgent.exe'
         creates_path: 'C:\Program Files\Parallels\Parallels Tools\PTIAgent.exe'
         arguments:
@@ -17,11 +18,11 @@
       poll: 0
 
     - name: wait for 60 seconds
-      pause:
+      ansible.builtin.pause:
         seconds: 60
 
     - name: wait for connection
-      wait_for_connection:
+      ansible.builtin.wait_for_connection:
 
     - name: wait for installation to finish
       community.windows.win_wait_for_process:
@@ -32,5 +33,5 @@
         post_wait_delay: 5
 
     - name: reboot after installation
-      win_reboot:
+      ansible.windows.win_reboot:
   when: not check_existing_parallels_tools.stat.exists

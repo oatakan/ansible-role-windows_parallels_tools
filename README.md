@@ -23,7 +23,7 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: servers
       roles:
-         - oatakan.windows_parallels_tools
+        - oatakan.windows_parallels_tools
 
 License
 -------
